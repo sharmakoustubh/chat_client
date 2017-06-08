@@ -1,0 +1,2 @@
+-module(chat_client).
+-compile(export_all).
