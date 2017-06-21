@@ -7,9 +7,9 @@ chat_server_test_() ->
      fun cleanup/1,
      [
       {"check you can start the server",fun start_server/0},
-      {"check port is already in use",fun port_already_in_use /0}
-      
-     ]}.
+      {"check port is already in use",fun port_already_in_use/0},
+      {"register the user test",fun register_user/0}
+           ]}.
 
 setup() ->
     ok = server:start().
@@ -36,4 +36,10 @@ start_server()->
     Pid= whereis(server),
     io:format(user,"~p~n",[Pid]),    
     ?assertMatch(true,is_pid(Pid)).
+
+register_user()->
+    Expect = {user_details,["Kb"],undefined,[]},
+    Result = server:register_client(["Kb"]),
+    ?assertMatch({user_details,["Kb"],_,_},Result).
+
 

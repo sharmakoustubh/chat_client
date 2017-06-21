@@ -1,6 +1,11 @@
 -module(server).
 -compile(export_all).
--define(INPUT_ERROR,"This command is not executable; Executable commands are list,run with module_name function_name function_arguments,info,exit").
+-define(INPUT_ERROR,"This command is not executable; Executable commands are register, login, exit").
+-record(user_details,
+	{username,
+	 password,
+	 message=[]
+	 }).
 
 start()->
     Ref = make_ref(),
@@ -31,7 +36,6 @@ loop(LSock) ->
     spawn(fun()-> handle_connection(Sock) end),
     loop(LSock).
 
-
 handle_connection(Sock) ->
     case gen_tcp:recv(Sock, 0) of
 	{ok, Data} ->
@@ -43,13 +47,6 @@ handle_connection(Sock) ->
 	Error ->
 	    io:format("Unhandled error: ~p~n", [Error])
     end.
-
-%% terminate(Sock)->
-%%     gen_tcp:close(Sock).
-
-%% send(Sock,Result)->
-%%     Formatted_data = io_lib:format("~p~n",[Result]),
-%%     gen_tcp:send(Sock, Formatted_data).
 
 format_process_send(Data,Sock)->
     Formatted_data = format(Data),
@@ -72,11 +69,12 @@ format(Data)->
 process(Data,Sock)->
     [Cmd|Rest] = string:tokens(Data," "),
     Elements_count = length(Rest),
+    io:format(user,"Tokens data: ~p~n", [Rest]),
     case Cmd of
     	"register"->
 	    case  Elements_count of
-		2->
-		    register_client();
+		1->
+		    register_client(Rest);
 		_->
 		    ?INPUT_ERROR
 	    end;
@@ -92,9 +90,10 @@ process(Data,Sock)->
     	    lists:flatten(io_lib:format("~s~n",["This command is not executable; Executable commands are list,run,info,exit"]))
     end.
     
-register_client()->
-    ok.
-
+register_client(Username)->
+    Result = #user_details{username = Username},
+    Result.
+    
 terminate(Sock)->
     gen_tcp:close(Sock).
 
