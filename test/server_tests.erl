@@ -38,8 +38,15 @@ start_server()->
     ?assertMatch(true,is_pid(Pid)).
 
 register_user()->
-    Expect = {user_details,["Kb"],undefined,[]},
-    Result = server:register_client(["Kb"]),
-    ?assertMatch({user_details,["Kb"],_,_},Result).
+    Result = server:register_client(["Kb","mypassword"]),
+    ?assertMatch({user_details,"Kb","mypassword",_},Result).
+
+%% login_user()->
+%%     Result = server:login_client(["Kb","mypassword"]),
+%%     ?assertMatch({user_details,"Kb","mypassword",_},Result).
+
+%% fetch_login_password()->
+%%     Result = server:register_client(["Kb","mypassword"]),
+%%     ?assertMatch({user_details,"Kb","mypasswordc",_},Result).
 
 

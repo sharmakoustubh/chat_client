@@ -1,11 +1,7 @@
 -module(server).
 -compile(export_all).
 -define(INPUT_ERROR,"This command is not executable; Executable commands are register, login, exit").
--record(user_details,
-	{username,
-	 password,
-	 message=[]
-	 }).
+-include("record_definition.hrl").
 
 start()->
     Ref = make_ref(),
@@ -73,7 +69,7 @@ process(Data,Sock)->
     case Cmd of
     	"register"->
 	    case  Elements_count of
-		1->
+		2->
 		    register_client(Rest);
 		_->
 		    ?INPUT_ERROR
@@ -90,8 +86,8 @@ process(Data,Sock)->
     	    lists:flatten(io_lib:format("~s~n",["This command is not executable; Executable commands are list,run,info,exit"]))
     end.
     
-register_client(Username)->
-    Result = #user_details{username = Username},
+register_client([Username, Password|[]])->
+    Result = #user_details{username = Username, password = Password},
     Result.
     
 terminate(Sock)->

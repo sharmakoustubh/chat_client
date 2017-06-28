@@ -1,0 +1,4 @@
+-record(user_details,{username,
+		      password,
+		      message}).
+
