@@ -1,4 +1,5 @@
 -record(user_details,{username,
 		      password,
-		      message}).
+		      stored_messages,
+		      new_messages}).
 
