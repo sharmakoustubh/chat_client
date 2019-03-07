@@ -44,13 +44,13 @@ register_user()->
     Result1 = server:register_client(["Kb","mypassword"], Tid),
     ?assertMatch("The user is registered",Result1),
     Result2 = ets:lookup(Tid, "Kb"),
-    ?assertMatch([{"Kb",{"mypassword",{[]}}}],Result2).
+    ?assertMatch([{"Kb",{"mypassword",[{"Welcome",_ ,unseen}]}}] , Result2). 
 
 login_user()->
     Tid = ets:new(database, [set, {keypos, 1}]), 
     Result1 = server:register_client(["Kb","mypassword"], Tid),
     ?assertMatch("The user is registered",Result1),
-    Result2 = server:login_client(["Kb","mypassword"], Tid, 241692),
+    Result2 = server:login_client(["Kb","mypassword"], Tid, 5000),
     ?assertMatch("The user is logged in",Result2).
 
 send_message_to_client()->
@@ -58,7 +58,7 @@ send_message_to_client()->
     
     Result1 = server:register_client(["A","passwordA"], Tid),
     ?assertMatch("The user is registered",Result1),
-    Result2 = server:login_client(["A","passwordA"], Tid, 241692),
+    Result2 = server:login_client(["A","passwordA"], Tid, 50000),
     ?assertMatch("The user is logged in",Result2),
     
     Result3 = server:register_client(["B","passwordB"], Tid),
@@ -68,10 +68,11 @@ send_message_to_client()->
     
     Result5 = server:send_message(["B","hi"], Tid),    
     ?assertMatch("Message sent",Result5),
-    
+     
     Result6 = ets:lookup(Tid, "B"),
-    ?assertMatch([{"B",{_,{[[]|{"hi",_,unseen}]}}}],Result6).
-
+%%    ?assertMatch([{"B",{_,{[[]|{"hi",_,unseen}]}}}],Result6).
+    ?assertMatch([{"B",{"passwordB",{[{"hi",_ ,unseen},{"Welcome",_,unseen}]}}}], Result6).
+ 
     
     %% Result5 = server:(["Kb","mypassword"], Tid, 241692),
     %% ?assertMatch("The user is logged in",Result2).

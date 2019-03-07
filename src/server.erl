@@ -13,7 +13,7 @@ start()->
     Ref = make_ref(),
     Parent = self(),
     io:format("Starting chat server~n"),
-    Tid = ets:new(database, [set, {keypos, 1}]), 
+    Tid = ets:new(database, [set, {keypos, 1}, public]), 
     Result = gen_tcp:listen(5000, [list, {packet, 0}, {active, false}]),
     case Result of
 	{ok,LSock}->	
@@ -92,7 +92,8 @@ process(Data, Sock, Tid)->
 
 	"send_message_to"->
 	    case  Elements_count of
-		E when E >2 ->
+		E when E >=2 ->
+		    io:format(user,"The message tokens are-----> ~p ~n",[Rest]),
 		    send_message(Rest, Tid);
 		_->
 		    ?INPUT_ERROR
@@ -106,10 +107,11 @@ process(Data, Sock, Tid)->
 		    ?INPUT_ERROR
 	    end;
     	_->
-    	    lists:flatten(io_lib:format("~s~n",["This command is not executable; Executable commands are register, login, send_message and exit"]))
+    	    lists:flatten(io_lib:format("~s~n",["This command is not executable; Executable commands are register, login, send_message_to and exit"]))
     end.
 
-register_client([Username, Password|[]], Tid)->
+
+register_client([Username, Password], Tid)->
     %%Result = #user_details{username = Username, password = Password},
     %% db:register(Username, Password),
     %% Result
@@ -122,17 +124,17 @@ register_client([Username, Password|[]], Tid)->
     end.
 
 register_client_user(Username, Password, Tid) ->
-    ets:insert(Tid, {Username, {Password,{[]}}}).
+    ets:insert(Tid, {Username, {Password, [{"Welcome" , os:timestamp(), unseen}]}}).
 
 check_username_exists(Username, Tid)->
     case ets:lookup(Tid, Username) of
-	[{_,Value}] ->
+	[{_,_Value}] ->
 	    true;
 	[] ->
 	    false
     end.
 
-login_client([Username, Password|[]], Tid, Sock) ->
+login_client([Username, Password], Tid, Sock) ->
     case check_login_credentials_are_correct(Username, Password, Tid) of
 	true ->
 	    spawn(fun()-> message_loop(Username, Tid, Sock) end),
@@ -144,7 +146,7 @@ login_client([Username, Password|[]], Tid, Sock) ->
 
 check_login_credentials_are_correct(Username, Password, Tid) ->
     case ets:lookup(Tid, Username) of
-	[{_,{Password,_}}] ->
+	[{_,{Password,_ }}] ->
 	    true;
 	[] ->
 	    false
@@ -152,19 +154,37 @@ check_login_credentials_are_correct(Username, Password, Tid) ->
 
 message_loop(Username, Tid, Sock)->
     case ets:lookup(Tid, Username) of
-	[{Username,{_Password,{Messages}}}]->
-	    send(Sock, Messages);
+	[{Username,{Password, Messages }}]->
+	    io:format(user,"Before the list comprehension state of receiver is----->>> ~p ~n",[ ets:lookup(Tid, Username)]),
+	    Unseen_Messages = [lists:concat(add_space([], Msg)) || {Msg,_,unseen} <- Messages],
+	  
+	    io:format(user,"The unseen messages are----->>> ~p ~n",[Unseen_Messages]),
+	    send(Sock, Unseen_Messages),
+
+	    Seen_Messages = [{Msg, Time, seen} || {Msg, Time, unseen} <- Messages],
+	    ets:delete(Tid, Username),
+	    ets:insert(Tid, {Username,{Password,Seen_Messages}});
 	[] ->
 	    send(Sock, "the message loop can't locate the user in the database")
-	end,
-    timer:sleep(60000),
+    end,
+    timer:sleep(6000),
     message_loop(Username, Tid, Sock).
+
+add_space(L,[]) ->
+   L;
+add_space(L,[H|T]) ->
+   add_space(L ++[" "] ++ [H],T).
 
 send_message([To, Message], Tid)->
     case ets:lookup(Tid, To) of
-	[{To,{Password,{Old_Messages}}}]->
+	[{To,{Password,Old_Messages}}]->
+	    io:format(user,"Old  messages are----->>> ~p ~n",[Old_Messages]),
+	    io:format(user,"New  messages are----->>> ~p ~n",[Message]),
+	    io:format(user,"old state of the receiver is  ~p ~n",[ets:lookup(Tid, To)]),
 	    ets:delete(Tid, To),
-	    ets:insert(Tid, {To,{Password,{[Old_Messages | {Message, os:timestamp(), unseen}]}}}),
+	    ets:insert(Tid, {To,{Password,{[ {Message, os:timestamp(), unseen} | Old_Messages ]}}}),
+	    Temp = ets:lookup(Tid, To),
+	    io:format(user,"Updated message value of the receiver is  ~p ~n",[Temp]),
 	    ?MESSAGE_SENT;
 	[] ->
 	    ?MESSAGE_NOT_SENT
@@ -176,4 +196,3 @@ terminate(Sock)->
 send(Sock,Result)->
     Formatted_data = io_lib:format("~p~n",[Result]),
     gen_tcp:send(Sock, Formatted_data).
-
