@@ -1,7 +1,7 @@
 chat_client
 =====
 
-An OTP application
+An OTP application for chat client written in Erlang.
 
 Build
 -----
